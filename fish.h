@@ -17,6 +17,8 @@ public:
 
 	void Animate(float delta_time_);
 
+	bool alive_ = true;
+
 private:
 	gef::MeshInstance* body_;
 	gef::MeshInstance* tail_;
@@ -28,4 +30,5 @@ private:
 	float tail_angle_;
 	float delta_angle_;
 	float max_angle_;
+
 };

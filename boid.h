@@ -22,11 +22,14 @@ public:
 	float alignment_weight_;
 	float cohesion_weight_;
 	float edges_weight_;
+	float flee_weight_;
+	float flee_radius_;
 
 private:
 	gef::Vector4 Separation(std::vector<Boid*> boids);
 	gef::Vector4 Alignment(std::vector<Boid*> boids);
 	gef::Vector4 Cohesion(std::vector<Boid*> boids);
+	gef::Vector4 Flee();
 	void Edges();
 
 private:

@@ -71,7 +71,7 @@ GameState::GameState(gef::Platform * platform,
 	marker_meshes_.push_back(primitive_builder_->CreatePlaneMesh(gef::Vector4(0.059f / 2, 0, 0.059f / 2), gef::Vector4(0.f, 0.f, 0.f), marker_materials_[3]));
 	marker_meshes_.push_back(primitive_builder_->CreatePlaneMesh(gef::Vector4(0.059f / 2, 0, 0.059f / 2), gef::Vector4(0.f, 0.f, 0.f), marker_materials_[4]));
 	marker_meshes_.push_back(primitive_builder_->CreatePlaneMesh(gef::Vector4(0.059f / 2, 0, 0.059f / 2), gef::Vector4(0.f, 0.f, 0.f), marker_materials_[5]));
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < number_of_markers_; i++)
 	{
 		gef::MeshInstance mesh_instance;
 		mesh_instance.set_mesh(marker_meshes_[i]);
@@ -79,12 +79,22 @@ GameState::GameState(gef::Platform * platform,
 	}
 
 	// FISHES
-	const char* fish_body_filename = "fish/body.scn";
-	fish_body_scene_assets_ = LoadSceneAssets(*platform_, fish_body_filename);
-	fish_body_mesh_instance_.set_mesh(GetMeshFromSceneAssets(fish_body_scene_assets_));
-	const char* fish_tail_filename = "fish/tail.scn";
-	fish_tail_scene_assets_ = LoadSceneAssets(*platform_, fish_tail_filename);
-	fish_tail_mesh_instance_.set_mesh(GetMeshFromSceneAssets(fish_tail_scene_assets_));
+	const char* fish_body_blue_filename = "fish/blue/body.scn";
+	fish_body_blue_scene_assets_ = LoadSceneAssets(*platform_, fish_body_blue_filename);
+	const char* fish_tail_blue_filename = "fish/blue/tail.scn";
+	fish_tail_blue_scene_assets_ = LoadSceneAssets(*platform_, fish_tail_blue_filename);
+	const char* fish_body_orange_filename = "fish/orange/body.scn";
+	fish_body_orange_scene_assets_ = LoadSceneAssets(*platform_, fish_body_orange_filename);
+	const char* fish_tail_orange_filename = "fish/orange/tail.scn";
+	fish_tail_orange_scene_assets_ = LoadSceneAssets(*platform_, fish_tail_orange_filename);
+
+	fish_body_blue_mesh_ = GetMeshFromSceneAssets(fish_body_blue_scene_assets_);
+	fish_tail_blue_mesh_ = GetMeshFromSceneAssets(fish_tail_blue_scene_assets_);
+	fish_body_orange_mesh_ = GetMeshFromSceneAssets(fish_body_orange_scene_assets_);
+	fish_tail_orange_mesh_ = GetMeshFromSceneAssets(fish_tail_orange_scene_assets_);
+
+	fish_body_mesh_instance_.set_mesh(fish_body_blue_mesh_);
+	fish_tail_mesh_instance_.set_mesh(fish_tail_blue_mesh_);
 	for (int i = 0; i < number_of_fishes_; i++)
 	{
 		fishes_.push_back(new Fish(&fish_body_mesh_instance_, &fish_tail_mesh_instance_));
@@ -100,7 +110,8 @@ GameState::GameState(gef::Platform * platform,
 	{
 		paintball_materials_.push_back(LoadMaterial("orange.png"));
 	}
-	paintball_mesh_ = primitive_builder_->CreateBoxMesh(gef::Vector4(0.001f, 0.001f, 0.001f), gef::Vector4(0.0f, 0.0f, 0.0f), &paintball_materials_[0]);
+	paintball_mesh_ = primitive_builder_->CreateBoxMesh(gef::Vector4(0.002f, 0.002f, 0.002f), gef::Vector4(0.0f, 0.0f, 0.0f), &paintball_materials_[0]);
+	paintball_mesh_instance_.set_mesh(paintball_mesh_);
 
 	// LIGHTS
 	float light = 0.8f;
@@ -341,10 +352,10 @@ void GameState::Update(float delta_time)
 			Fish* fish = (Fish*)boid;
 			fish->setParentTransform(marker_transform_);
 		}
-		for (Paintball* paintball : paintballs_)
+		/*for (Paintball* paintball : paintballs_)
 		{
 			paintball->setParentTransform(marker_transform_);
-		}
+		}*/
 
 	}
 	else
@@ -366,11 +377,11 @@ void GameState::Update(float delta_time)
 			fish->setParentTransform(marker_transform_);
 			fish->setOffsetTransform(offset_transforms_[anchor_]);
 		}
-		for (Paintball* paintball : paintballs_)
+		/*for (Paintball* paintball : paintballs_)
 		{
 			paintball->setParentTransform(marker_transform_);
 			paintball->setOffsetTransform(offset_transforms_[anchor_]);
-		}
+		}*/
 	}
 
 	gef::Matrix44 marker_rotation;
@@ -383,6 +394,40 @@ void GameState::Update(float delta_time)
 		Fish* fish = (Fish*)boid;
 		fish->Update(fishes_, delta_time);
 		fish->Animate(delta_time);
+	}
+
+	for (Paintball* paintball : paintballs_)
+	{
+		if (paintball->alive_)
+		{
+			paintball->Update(delta_time);
+			if (paintball->position_.z() < -5.0f)
+			{
+				paintball->alive_ = false;
+			}
+		}
+	}
+	
+
+	// COLLISIONS
+	for (Paintball* paintball : paintballs_)
+	{
+		if (paintball->alive_)
+		{
+			for (Boid* boid : fishes_)
+			{
+				Fish* fish = (Fish*)boid;
+				if (fish->alive_)
+				{
+					if ((fish->GetWorldTransform().GetTranslation() - paintball->GetWorldTransform().GetTranslation()).Length() < 0.015f)
+					{
+						paintball->alive_ = false;
+						fish->alive_ = false;
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	gef::Matrix44 environment_translation;
@@ -416,11 +461,20 @@ void GameState::Render()
 	if (marker_detected_)
 	{
 		// FISHES
-		renderer_3D_->DrawMesh(marker_mesh_instances_[anchor_]);
-
 		for (Boid* boid : fishes_)
 		{
 			Fish* fish = (Fish*)boid;
+			if (fish->alive_)
+			{
+				fish_body_mesh_instance_.set_mesh(fish_body_blue_mesh_);
+				fish_tail_mesh_instance_.set_mesh(fish_tail_blue_mesh_);
+			}
+			else
+			{
+				fish_body_mesh_instance_.set_mesh(fish_body_orange_mesh_);
+				fish_tail_mesh_instance_.set_mesh(fish_tail_orange_mesh_);
+			}
+				
 			fish_body_mesh_instance_.set_transform(fish->GetBodyTransform());
 			fish_tail_mesh_instance_.set_transform(fish->GetTailTransform());
 			renderer_3D_->DrawMesh(fish_body_mesh_instance_);
@@ -428,7 +482,7 @@ void GameState::Render()
 		}
 
 		// MARKER
-		
+		renderer_3D_->DrawMesh(marker_mesh_instances_[anchor_]);
 		
 		// ENVIRONMENT
 		//renderer_3D_->SetFillMode(gef::Renderer3D::FillMode::kWireframe);
@@ -437,13 +491,19 @@ void GameState::Render()
 
 		// PAINTBALL
 
-		gef::Matrix44 paintball_rotation;
-		paintball_rotation.SetIdentity();
-		paintball_rotation.RotationX(3.1415f / 2);
-		marker_mesh_instances_[anchor_].set_transform(paintball_rotation * marker_transform_);
+		gef::Matrix44 marker_rotation;
+		marker_rotation.SetIdentity();
+		marker_rotation.RotationX(3.1415f / 2);
+		marker_mesh_instances_[anchor_].set_transform(marker_rotation * marker_transform_);
 
-		renderer_3D_->DrawMesh(paintball_mesh_instance_);
-
+		for (Paintball* paintball : paintballs_)
+		{
+			if (paintball->alive_)
+			{
+				paintball_mesh_instance_.set_transform(paintball->GetWorldTransform());
+				renderer_3D_->DrawMesh(paintball_mesh_instance_);
+			}
+		}
 	}
 
 	renderer_3D_->End();
@@ -508,7 +568,15 @@ void GameState::CalculateOffestTransforms()
 
 void GameState::FirePaintball()
 {
-	paintballs_.push_back(new Paintball());
+	gef::Matrix44 inverse_marker_transform;
+	inverse_marker_transform.AffineInverse(marker_transform_);
+
+
+	Paintball* paintball = new Paintball();
+	//paintball->spawn_transform_ = inverse_marker_transform;
+	//paintball->setParentTransform(inverse_marker_transform);
+	//paintball->setOffsetTransform(offset_transforms_[anchor_]);
+	paintballs_.push_back(paintball);
 }
 
 gef::Material* GameState::LoadMaterial(char* file_name)

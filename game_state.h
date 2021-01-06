@@ -60,8 +60,16 @@ protected:
 	gef::Sprite camera_feed_sprite_;
 	gef::TextureVita* camera_feed_texture_;
 
-	gef::Scene * fish_body_scene_assets_;
-	gef::Scene * fish_tail_scene_assets_;
+	gef::Scene * fish_body_blue_scene_assets_;
+	gef::Scene * fish_tail_blue_scene_assets_;
+	gef::Scene * fish_body_orange_scene_assets_;
+	gef::Scene * fish_tail_orange_scene_assets_;
+
+	gef::Mesh * fish_body_blue_mesh_;
+	gef::Mesh * fish_tail_blue_mesh_;
+	gef::Mesh * fish_body_orange_mesh_;
+	gef::Mesh * fish_tail_orange_mesh_;
+
 	gef::MeshInstance fish_body_mesh_instance_;
 	gef::MeshInstance fish_tail_mesh_instance_;
 
