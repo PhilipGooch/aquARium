@@ -14,7 +14,7 @@ Boid::Boid() :
 	cohesion_weight_(1.1),
 	edges_weight_(1.5f),
 	flee_weight_(0.01f),
-	flee_radius_(0.5f),
+	flee_radius_(0.05f),
 	environment_half_width_(0.08f),
 	environment_half_depth_(0.08f),
 	environment_half_height_(0.08f)
@@ -42,15 +42,15 @@ void Boid::Update(std::vector<Boid*> boids, float delta_time)
 {
 	acceleration_ = gef::Vector4(0.f, 0.f, 0.f);
 
-	//Edges();
+	Edges();
 
-	//acceleration_ += Separation(boids) * separation_weight_;
-	//acceleration_ += Alignment(boids) * alignment_weight_;
-	//acceleration_ += Cohesion(boids) * cohesion_weight_;
+	acceleration_ += Separation(boids) * separation_weight_;
+	acceleration_ += Alignment(boids) * alignment_weight_;
+	acceleration_ += Cohesion(boids) * cohesion_weight_;
 	acceleration_ += Flee() * flee_weight_;
 
 	velocity_ += acceleration_ * delta_time;
-	//velocity_ = vClamp(velocity_, min_speed_, max_speed_);
+	velocity_ = vClamp(velocity_, min_speed_, max_speed_);
 
 	position_ += velocity_ * delta_time;
 
@@ -70,7 +70,6 @@ void Boid::Update(std::vector<Boid*> boids, float delta_time)
 	translation.SetTranslation(position_);
 
 	local_transform_ = rotation * translation;
-
 
 	world_transform_ = local_transform_ * offset_transform_ * parent_transform_;
 }
@@ -166,9 +165,19 @@ gef::Vector4 Boid::Flee()
 	// set fish(5) local transform 0
 
 	gef::Vector4 steering = gef::Vector4(0.f, 0.f, 0.f);
-	gef::Vector4 desired = position_world_space;
-	float distanceSquared = vMagnitudeSquared(position_);
-	if (distanceSquared < flee_radius_ * flee_radius_)
+
+	gef::Matrix44 inverse_local_transform;
+	inverse_local_transform.AffineInverse(local_transform_);
+
+	gef::Matrix44 inverse_parent_transform;
+	inverse_parent_transform.AffineInverse(parent_transform_);
+
+	gef::Matrix44 desired_transform;
+	desired_transform = world_transform_ * inverse_local_transform * inverse_parent_transform;
+
+	gef::Vector4 desired = desired_transform.GetTranslation();;
+	float distance = position_world_space.Length();
+	if (distance < flee_radius_)
 	{
 		desired = vSetMagnitude(desired, max_speed_);
 		steering = desired - velocity_;

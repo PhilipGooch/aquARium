@@ -24,6 +24,7 @@ namespace gef
 class PrimitiveBuilder;
 class Boid;
 class Paintball;
+class StateMachine;
 
 class GameState : public State
 {
@@ -33,7 +34,8 @@ public:
 			  gef::AudioManager * audio_manager,
 			  gef::Renderer3D * renderer_3D,
 			  gef::SpriteRenderer * sprite_renderer,
-			  gef::Font * font);
+			  gef::Font * font,
+			  StateMachine * state_machine);
 	~GameState();
 
 protected:
@@ -100,5 +102,8 @@ protected:
 	const int number_of_markers_ = 5;
 
 	std::vector<gef::Matrix44> offset_transforms_;
+
+	gef::Mesh * debug_cube_mesh_;
+	gef::MeshInstance debug_cube_mesh_instance_;
 };
 

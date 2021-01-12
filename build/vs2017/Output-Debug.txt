@@ -1,0 +1,48 @@
+﻿'ar_app.self': Loaded 'ScePerf'.
+'ar_app.self': Loaded 'SceAppUtil'.
+'ar_app.self': Loaded 'SceLibPvf'.
+'ar_app.self': Loaded 'SceLibft2'.
+'ar_app.self': Loaded 'SceLibDbg'.
+'ar_app.self': Loaded 'SceCommonDialog'.
+'ar_app.self': Loaded 'SceShellSvc'.
+'ar_app.self': Loaded 'SceLibc'.
+'ar_app.self': Loaded 'SceLibFios2'.
+'ar_app.self': Loaded 'SceGxm'.
+'ar_app.self': Loaded 'SceGpuEs4User'.
+'ar_app.self': Loaded 'SceAvcodecUser'.
+'ar_app.self': Loaded 'SceDriverUser'.
+'ar_app.self': Loaded 'SceLibKernel'.
+'ar_app.self': Loaded 'M:\Year 4\CMP404\aquARium\build\vs2017\PSVita_Debug\ar_app.self', Symbols loaded.
+The thread 0x40010035 has exited with code 0 (0x0).
+The thread 0x40010045 has exited with code 0 (0x0).
+The thread 0x40010061 has exited with code 0 (0x0).
+The thread 0x40010073 has exited with code 0 (0x0).
+The thread 0x40010077 has exited with code 0 (0x0).
+The thread 0x40010093 has exited with code 0 (0x0).
+The thread 0x400100c7 has exited with code 0 (0x0).
+The thread 0x40020061 has exited with code 0 (0x0).
+The thread 0x40010129 has exited with code 0 (0x0).
+The thread 0x4001012f has exited with code 0 (0x0).
+'ar_app.self': Loaded 'SceRazorCapture'.
+The thread 0x40010137 has exited with code 0 (0x0).
+Panel 0 Active X(0->1919) Y(0->1087) Disp X(0->1919) Y(0->1087)
+Panel 1 Active X(0->1919) Y(108->889) Disp X(0->1919) Y(0->1087)
+'ar_app.self': Loaded 'SceNgsUser'.
+...sceNgsSystemInit() OK
+....set Player Callbacks
+prepareAudioOut: sending output to audio port 7
+startAudioUpdateThread: started AudioUpdateThread
+_AudioUpdateThread running
+SCE libdbg LOG, LEVEL: info, COMPONENT: , FILE:M:\Year 4\CMP404\aquARium_no_roll\ar_vita\sony_sample_framework.cpp, LINE:195 _vsyncThread: start
+
+'ar_app.self': Loaded 'SceSmart'.
+The thread 0x402701fd has exited with code 0 (0x0).
+SCE libdbg LOG, LEVEL: info, COMPONENT: , FILE:M:\Year 4\CMP404\aquARium_no_roll\ar_vita\sony_tracking.cpp, LINE:122 _smartTrackingThread: start
+
+The thread 0x40010003 has exited with code -2147319764 (0x8002802c).
+The thread 0x400200fb has exited with code -2147319764 (0x8002802c).
+The thread 0x40010145 has exited with code -2147319764 (0x8002802c).
+The thread 0x402701e1 has exited with code -2147319764 (0x8002802c).
+The thread 0x4028016f has exited with code -2147319764 (0x8002802c).
+The thread 0x4001016d has exited with code -2147319764 (0x8002802c).
+The program '[17769659] ar_app.self: PS Vita CPU' has exited with code 0 (0x0).

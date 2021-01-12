@@ -68,6 +68,4 @@ void Fish::Animate(float delta_time_)
 	body_transform_ = scale * rotation_x * body_rotation * body_translation * world_transform_;
 
 	tail_transform_ = tail_rotation * tail_translation * scale * body_rotation * world_transform_;
-
-	world_transform_ = body_transform_;
 }

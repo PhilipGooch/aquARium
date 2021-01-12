@@ -10,6 +10,7 @@ namespace gef
 	class Renderer3D;
 	class Font;
 }
+class StateMachine;
 
 class OptionsState : public State
 {
@@ -19,7 +20,8 @@ public:
 			     gef::AudioManager * audio_manager,
 			     gef::Renderer3D * renderer_3D,
 			     gef::SpriteRenderer * sprite_renderer,
-			     gef::Font * font);
+			     gef::Font * font,
+				 StateMachine * state_machine);
 	~OptionsState();
 
 protected:

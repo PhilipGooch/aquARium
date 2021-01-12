@@ -9,6 +9,7 @@ namespace gef
 	class Renderer3D;
 	class Font;
 }
+class StateMachine;
 
 class State
 {
@@ -18,7 +19,9 @@ public:
 		  gef::AudioManager * audio_manager,
 		  gef::Renderer3D * renderer_3D,
 		  gef::SpriteRenderer * sprite_renderer,
-		  gef::Font * font);
+		  gef::Font * font,
+		  StateMachine * state_machine
+	);
 
 	// virtual functions use dynamic dispatch using a v-table.
 	// v-tables map virtual functions to the correct overridden function at runtime.
@@ -43,6 +46,8 @@ protected:
 	gef::Font* font_;
 
 	float fps_;
+
+	StateMachine * state_machine_;
 
 };
 

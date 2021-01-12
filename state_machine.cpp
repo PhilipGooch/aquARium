@@ -11,11 +11,11 @@ StateMachine::StateMachine(gef::Platform * platform,
 						   gef::SpriteRenderer * sprite_renderer, 
 						   gef::Font * font)
 {
-	game_state_ = new GameState(platform, input_manager, audio_manager, renderer_3D, sprite_renderer, font);
-	menu_state_ = new MenuState(platform, input_manager, audio_manager, renderer_3D, sprite_renderer, font);
-	options_state_ = new OptionsState(platform, input_manager, audio_manager, renderer_3D, sprite_renderer, font);
+	game_state_ = new GameState(platform, input_manager, audio_manager, renderer_3D, sprite_renderer, font, this);
+	menu_state_ = new MenuState(platform, input_manager, audio_manager, renderer_3D, sprite_renderer, font, this);
+	options_state_ = new OptionsState(platform, input_manager, audio_manager, renderer_3D, sprite_renderer, font, this);
 
-	SetState(STATE::GAME);
+	SetState(STATE::MENU);
 }
 
 StateMachine::~StateMachine()

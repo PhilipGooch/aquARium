@@ -21,14 +21,16 @@
 #include "primitive_builder.h"
 #include "fish.h"
 #include "paintball.h"
+#include "state_machine.h"
 
 GameState::GameState(gef::Platform * platform,
 					 gef::InputManager * input_manager,
 					 gef::AudioManager * audio_manager,
 					 gef::Renderer3D * renderer_3D,
 					 gef::SpriteRenderer * sprite_renderer,
-					 gef::Font * font) :
-	State(platform, input_manager, audio_manager, renderer_3D, sprite_renderer, font)
+					 gef::Font * font,
+					 StateMachine * state_machine) :
+	State(platform, input_manager, audio_manager, renderer_3D, sprite_renderer, font, state_machine)
 {
 	// INITIALIZE SONY FRAMEWORK
 	sampleInitialize();
@@ -39,7 +41,7 @@ GameState::GameState(gef::Platform * platform,
 	gef::Matrix44 scale_matrix;
 	scale_matrix.SetIdentity();
 	scale_matrix.Scale(gef::Vector4(1.f, camera_image_scale_factor, 1.f, 1.f));
-	projection_matrix_ = platform_->PerspectiveProjectionFov(SCE_SMART_IMAGE_FOV, (float)SCE_SMART_IMAGE_WIDTH / (float)SCE_SMART_IMAGE_HEIGHT, .01f, 10.f);
+	projection_matrix_ = platform_->PerspectiveProjectionFov(SCE_SMART_IMAGE_FOV, (float)SCE_SMART_IMAGE_WIDTH / (float)SCE_SMART_IMAGE_HEIGHT, .0001f, 10.f);
 	projection_matrix_ = projection_matrix_ * scale_matrix;
 	view_matrix_.SetIdentity();
 	ortho_matrix_.SetIdentity();
@@ -125,6 +127,9 @@ GameState::GameState(gef::Platform * platform,
 		offset_transforms_.back().SetIdentity();
 	}
 
+	// DEBUG CUBE
+	debug_cube_mesh_ = primitive_builder_->CreateBoxMesh(gef::Vector4(0.01f, 0.01f, 0.01f), gef::Vector4(0.0f, 0.0f, 0.0f), &paintball_materials_[0]);
+	debug_cube_mesh_instance_.set_mesh(debug_cube_mesh_);
 }
 
 GameState::~GameState()
@@ -356,7 +361,6 @@ void GameState::Update(float delta_time)
 		{
 			paintball->setParentTransform(marker_transform_);
 		}*/
-
 	}
 	else
 	{
@@ -435,6 +439,7 @@ void GameState::Update(float delta_time)
 	environment_translation.SetTranslation(gef::Vector4(-environment_dimensions_.x(), -environment_dimensions_.y(), environment_dimensions_.z()));
 	environment_mesh_instance_.set_transform(environment_translation * fishes_.front()->GetOffsetTransform() * fishes_.front()->GetParentTransform());
 	
+	debug_cube_mesh_instance_.set_transform(fishes_.front()->GetLocalTransform() * fishes_.front()->GetOffsetTransform() * fishes_.front()->GetParentTransform());
 
 	sampleUpdateEnd(dat);
 }
@@ -474,7 +479,18 @@ void GameState::Render()
 				fish_body_mesh_instance_.set_mesh(fish_body_orange_mesh_);
 				fish_tail_mesh_instance_.set_mesh(fish_tail_orange_mesh_);
 			}
-				
+
+			/*if (fish->GetWorldTransform().GetTranslation().Length() < 0.05)
+			{
+				fish_body_mesh_instance_.set_mesh(fish_body_orange_mesh_);
+				fish_tail_mesh_instance_.set_mesh(fish_tail_orange_mesh_);
+			}
+			else
+			{
+				fish_body_mesh_instance_.set_mesh(fish_body_blue_mesh_);
+				fish_tail_mesh_instance_.set_mesh(fish_tail_blue_mesh_);
+			}*/
+
 			fish_body_mesh_instance_.set_transform(fish->GetBodyTransform());
 			fish_tail_mesh_instance_.set_transform(fish->GetTailTransform());
 			renderer_3D_->DrawMesh(fish_body_mesh_instance_);
@@ -506,6 +522,8 @@ void GameState::Render()
 		}
 	}
 
+	//renderer_3D_->DrawMesh(debug_cube_mesh_instance_);
+
 	renderer_3D_->End();
 
 	if (font_)
@@ -525,6 +543,8 @@ void GameState::Render()
 		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 220.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Alignment:  %.3f", fishes_.front()->alignment_weight_);
 		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 260.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Cohesion:   %.3f", fishes_.front()->cohesion_weight_);
 		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 300.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Edges:      %.3f", fishes_.front()->edges_weight_);
+
+		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 300.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "%f %f %f", fishes_.front()->GetWorldTransform().GetTranslation().x(), fishes_.front()->GetWorldTransform().GetTranslation().y(), fishes_.front()->GetWorldTransform().GetTranslation().z());
 
 		if (!marker_detected_)
 		{
@@ -570,7 +590,6 @@ void GameState::FirePaintball()
 {
 	gef::Matrix44 inverse_marker_transform;
 	inverse_marker_transform.AffineInverse(marker_transform_);
-
 
 	Paintball* paintball = new Paintball();
 	//paintball->spawn_transform_ = inverse_marker_transform;
