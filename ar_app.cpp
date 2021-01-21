@@ -38,7 +38,7 @@ bool ARApp::Update(float delta_time)
 	State* state = state_machine_->GetState();
 	if (state)
 	{
-		if (!state->HandleInput()) return false;
+		state->HandleInput();
 		state->Update(delta_time);
 	}
 

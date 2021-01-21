@@ -7,7 +7,6 @@
 #include <graphics\sprite.h>
 #include <platform/vita/graphics/texture_vita.h>
 #include <graphics/mesh_instance.h>
-#include "graphics/scene.h"
 
 namespace gef
 {
@@ -20,6 +19,7 @@ namespace gef
 	class Material;
 	class Mesh;
 	class MeshInstance;
+	class Scene;
 }
 class PrimitiveBuilder;
 class Boid;
@@ -99,11 +99,14 @@ protected:
 	int delay_ = 0;
 
 	bool callibrating_ = true;
-	const int number_of_markers_ = 5;
+	const int number_of_markers_ = 1;
 
 	std::vector<gef::Matrix44> offset_transforms_;
 
 	gef::Mesh * debug_cube_mesh_;
 	gef::MeshInstance debug_cube_mesh_instance_;
+
+	int number_of_blue_fishes_ = number_of_fishes_;
+	int number_of_orange_fishes_ = 0;
 };
 

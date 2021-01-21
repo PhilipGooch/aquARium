@@ -18,6 +18,7 @@
 #include <graphics/material.h>
 #include <graphics/mesh.h>
 #include <system/debug_log.h>
+#include <graphics/scene.h>
 #include "primitive_builder.h"
 #include "fish.h"
 #include "paintball.h"
@@ -99,7 +100,7 @@ GameState::GameState(gef::Platform * platform,
 	fish_tail_mesh_instance_.set_mesh(fish_tail_blue_mesh_);
 	for (int i = 0; i < number_of_fishes_; i++)
 	{
-		fishes_.push_back(new Fish(&fish_body_mesh_instance_, &fish_tail_mesh_instance_));
+		fishes_.push_back(new Fish());
 	}
 
 	// ENVIRONMENT
@@ -350,6 +351,7 @@ void GameState::Update(float delta_time)
 
 	if (sampleIsMarkerFound(anchor_))
 	{
+		marker_detected_ = true;
 		sampleGetTransform(anchor_, &marker_transform_);
 
 		for (Boid* boid : fishes_)
@@ -374,18 +376,19 @@ void GameState::Update(float delta_time)
 				break;
 			}
 		}
-		sampleGetTransform(anchor_, &marker_transform_);
-		for (Boid* boid : fishes_)
-		{
-			Fish* fish = (Fish*)boid;
-			fish->setParentTransform(marker_transform_);
-			fish->setOffsetTransform(offset_transforms_[anchor_]);
-		}
+		
 		/*for (Paintball* paintball : paintballs_)
 		{
 			paintball->setParentTransform(marker_transform_);
 			paintball->setOffsetTransform(offset_transforms_[anchor_]);
 		}*/
+	}
+	sampleGetTransform(anchor_, &marker_transform_);
+	for (Boid* boid : fishes_)
+	{
+		Fish* fish = (Fish*)boid;
+		fish->setParentTransform(marker_transform_);
+		fish->setOffsetTransform(offset_transforms_[anchor_]);
 	}
 
 	gef::Matrix44 marker_rotation;
@@ -427,6 +430,8 @@ void GameState::Update(float delta_time)
 					{
 						paintball->alive_ = false;
 						fish->alive_ = false;
+						number_of_blue_fishes_--;
+						number_of_orange_fishes_++;
 						break;
 					}
 				}
@@ -533,6 +538,10 @@ void GameState::Render()
 		sprite_renderer_->set_projection_matrix(projection_2D);
 		sprite_renderer_->Begin(false);
 		font_->RenderText(sprite_renderer_, gef::Vector4(850.0f, 510.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "FPS: %.1f", fps_);
+
+		font_->RenderText(sprite_renderer_, gef::Vector4(800.0f, 110.0f, -0.9f), 1.0f, 0xffff0000, gef::TJ_CENTRE, "%i", number_of_blue_fishes_);
+		font_->RenderText(sprite_renderer_, gef::Vector4(830.0f, 110.0f, -0.9f), 1.0f, 0xff000000, gef::TJ_CENTRE, "/");
+		font_->RenderText(sprite_renderer_, gef::Vector4(860.0f, 110.0f, -0.9f), 1.0f, 0xff277fff, gef::TJ_CENTRE, "%i", number_of_orange_fishes_);
 
 		//font_->RenderText(sprite_renderer_, gef::Vector4(20.0f, 20.0f + variable_ * 40, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, ">");
 		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 20.0f, -0.9f), 1.0f,  0xffffffff, gef::TJ_LEFT, "Perception: %.3f", fishes_.front()->perception_);

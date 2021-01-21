@@ -4,10 +4,8 @@
 #include "graphics/mesh_instance.h"
 
 
-Fish::Fish(gef::MeshInstance* body, gef::MeshInstance* tail) :
+Fish::Fish() :
 	Boid(),
-	body_(body),
-	tail_(tail),
 	body_angle_(0.0f),
 	tail_angle_(0.0f),
 	delta_angle_(0.035f),

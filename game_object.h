@@ -16,6 +16,7 @@ public:
 	inline void setLocalTransform(gef::Matrix44 local_transform) { offset_transform_ = local_transform; }
 	inline void setOffsetTransform(gef::Matrix44 offset_transform) { offset_transform_ = offset_transform; }
 	inline void setParentTransform(gef::Matrix44 parent_transform) { parent_transform_ = parent_transform; }
+	inline void setWorldTransform(gef::Matrix44 world_transform) { world_transform_ = world_transform; }
 
 protected:
 	gef::Matrix44 local_transform_;

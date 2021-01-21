@@ -9,7 +9,7 @@ namespace gef
 class Fish : public Boid
 {
 public:
-	Fish(gef::MeshInstance* body, gef::MeshInstance* tail);
+	Fish();
 	~Fish();
 
 	inline gef::Matrix44 GetBodyTransform() { return body_transform_; }
@@ -20,9 +20,6 @@ public:
 	bool alive_ = true;
 
 private:
-	gef::MeshInstance* body_;
-	gef::MeshInstance* tail_;
-
 	gef::Matrix44 body_transform_;
 	gef::Matrix44 tail_transform_;
 

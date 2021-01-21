@@ -49,5 +49,8 @@ protected:
 
 	StateMachine * state_machine_;
 
+	bool up_pressed_ = false;
+	bool down_pressed_ = false;
+
 };
 
