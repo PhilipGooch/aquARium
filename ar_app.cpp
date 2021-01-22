@@ -7,7 +7,7 @@
 #include <graphics/font.h>
 #include "primitive_builder.h"
 #include "state_machine.h"
-#include "state.h"
+#include "state.h"    
 
 ARApp::ARApp(gef::Platform& platform) :
 	Application(platform)
@@ -24,6 +24,11 @@ void ARApp::Init()
 	font_ = new gef::Font(platform_);
 	font_->Load("comic_sans");
 	state_machine_ = new StateMachine(&platform_, input_manager_, audio_manager_, renderer_3D_, sprite_renderer_, font_);
+
+	std::vector<int> sfx_IDs_;
+
+	audio_manager_->LoadMusic("bubbles.wav", platform_);						
+	audio_manager_->PlayMusic();
 }
 
 void ARApp::CleanUp()

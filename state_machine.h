@@ -11,7 +11,8 @@ namespace gef
 class State;
 class GameState;
 class MenuState;
-class OptionsState;
+class HelpState;
+class WinState;
 
 class StateMachine
 {
@@ -28,7 +29,8 @@ public:
 	{
 		MENU,
 		GAME,
-		OPTIONS
+		HELP,
+		WIN
 	};
 
 	void SetState(STATE state);
@@ -41,5 +43,6 @@ private:
 	State* state_;
 	GameState* game_state_;
 	MenuState* menu_state_;
-	OptionsState* options_state_;
+	HelpState* help_state_;
+	WinState* win_state_;
 };

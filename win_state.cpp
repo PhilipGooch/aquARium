@@ -1,4 +1,4 @@
-#include "menu_state.h"
+#include "win_state.h"
 
 #include <gxm.h>
 #include <motion.h>
@@ -23,13 +23,13 @@
 #include "fish.h"
 #include "boid.h"
 
-MenuState::MenuState(gef::Platform * platform,
-					 gef::InputManager * input_manager,
-					 gef::AudioManager * audio_manager,
-					 gef::Renderer3D * renderer_3D,
-					 gef::SpriteRenderer * sprite_renderer,
-					 gef::Font * font,
-					 StateMachine * state_machine) :
+WinState::WinState(gef::Platform * platform,
+	gef::InputManager * input_manager,
+	gef::AudioManager * audio_manager,
+	gef::Renderer3D * renderer_3D,
+	gef::SpriteRenderer * sprite_renderer,
+	gef::Font * font,
+	StateMachine * state_machine) :
 	State(platform, input_manager, audio_manager, renderer_3D, sprite_renderer, font, state_machine)
 {
 	// LIGHTS
@@ -50,20 +50,13 @@ MenuState::MenuState(gef::Platform * platform,
 	gef::ImageData image_data;
 
 	background_texture_ = nullptr;
-	png_loader.Load("menu.png", *platform_, image_data);
+	png_loader.Load("win.png", *platform_, image_data);
 	background_texture_ = gef::Texture::Create(*platform_, image_data);
 
 	background_sprite_.set_width(960);
 	background_sprite_.set_height(544);
 	background_sprite_.set_position(gef::Vector4(960 / 2, 544 / 2, 1.f, 1.f));
 	background_sprite_.set_texture(background_texture_);
-
-	indicator_texture_ = nullptr;
-	png_loader.Load("indicator.png", *platform_, image_data);
-	indicator_texture_ = gef::Texture::Create(*platform_, image_data);
-	indicator_sprite_.set_width(40);
-	indicator_sprite_.set_height(41);
-	indicator_sprite_.set_texture(indicator_texture_);
 
 	// FISHES
 	const char* fish_body_blue_filename = "fish/blue/body.scn";
@@ -80,8 +73,6 @@ MenuState::MenuState(gef::Platform * platform,
 	fish_body_orange_mesh_ = GetMeshFromSceneAssets(fish_body_orange_scene_assets_);
 	fish_tail_orange_mesh_ = GetMeshFromSceneAssets(fish_tail_orange_scene_assets_);
 
-	fish_body_blue_mesh_instance_.set_mesh(fish_body_blue_mesh_);
-	fish_tail_blue_mesh_instance_.set_mesh(fish_tail_blue_mesh_);
 	fish_body_orange_mesh_instance_.set_mesh(fish_body_orange_mesh_);
 	fish_tail_orange_mesh_instance_.set_mesh(fish_tail_orange_mesh_);
 
@@ -92,6 +83,7 @@ MenuState::MenuState(gef::Platform * platform,
 
 	gef::Matrix44 scale;
 	scale.SetIdentity();
+	scale.Scale(gef::Vector4(1.5f, 1.5f, 1.5f));
 
 	gef::Matrix44 rotation_x;
 	rotation_x.SetIdentity();
@@ -99,43 +91,27 @@ MenuState::MenuState(gef::Platform * platform,
 
 	gef::Matrix44 rotation_y;
 	rotation_y.SetIdentity();
-	rotation_y.RotationY(-3.1415 / 8);
+	rotation_y.RotationY(3.1415 + 3.1415 / 4);
 
 	gef::Matrix44 rotation;
 	rotation = rotation_x * rotation_y;
 
 	gef::Matrix44 translation;
 	translation.SetIdentity();
-	translation.SetTranslation(gef::Vector4(-0.016, -0.007, -0.04));
+	translation.SetTranslation(gef::Vector4(0, -0.006, -0.04));
 
 	gef::Matrix44 transform;
-	transform = rotation * translation;
+	transform = scale * rotation * translation;
 
 	fishes_[0]->setWorldTransform(transform);
 
-	rotation_y.RotationY(3.1415 + 3.1415 / 8);
-	rotation = rotation_x * rotation_y;
-	translation.SetTranslation(gef::Vector4(0.016, -0.007, -0.04));
-	transform = rotation * translation;
-
-	fishes_[1]->setWorldTransform(transform);
-	
 }
 
 
-MenuState::~MenuState()
+WinState::~WinState()
 {
-	delete indicator_texture_;
-	indicator_texture_ = nullptr;
-
 	delete background_texture_;
 	background_texture_ = nullptr;
-
-	delete fish_body_blue_scene_assets_;
-	fish_body_blue_scene_assets_ = nullptr;
-
-	delete fish_tail_blue_scene_assets_;
-	fish_tail_blue_scene_assets_ = nullptr;
 
 	delete fish_body_orange_scene_assets_;
 	fish_body_orange_scene_assets_ = nullptr;
@@ -146,12 +122,11 @@ MenuState::~MenuState()
 	fishes_.clear();
 }
 
-void MenuState::Init()
+void WinState::Init()
 {
-	selection_ = 0;
 }
 
-bool MenuState::HandleInput()
+bool WinState::HandleInput()
 {
 	if (input_manager_)
 	{
@@ -165,44 +140,10 @@ bool MenuState::HandleInput()
 
 			if (controller)
 			{
-				if (!(controller->buttons_down() & gef_SONY_CTRL_UP))
+				// TRIANGLE
+				if (controller->buttons_down() & gef_SONY_CTRL_TRIANGLE)
 				{
-					up_pressed_ = false;
-				}
-				if (!(controller->buttons_down() & gef_SONY_CTRL_DOWN))
-				{
-					down_pressed_ = false;
-				}
-				if (!up_pressed_ && (controller->buttons_down() & gef_SONY_CTRL_UP))
-				{
-					up_pressed_ = true;
-					if (selection_ > 0)
-					{
-						selection_--;
-					}
-				}
-				if (!down_pressed_ && (controller->buttons_down() & gef_SONY_CTRL_DOWN))
-				{
-					down_pressed_ = true;
-					if (selection_ < 2)
-					{
-						selection_++;
-					}
-				}
-				if (controller->buttons_down() & gef_SONY_CTRL_CROSS)
-				{
-					if (selection_ == 0)
-					{
-						state_machine_->SetState(StateMachine::GAME);
-					}
-					else if (selection_ == 1)
-					{
-						state_machine_->SetState(StateMachine::HELP);
-					}
-					else if (selection_ == 2)
-					{
-						exit(0);
-					}
+					state_machine_->SetState(StateMachine::MENU);
 				}
 			}
 		}
@@ -211,21 +152,8 @@ bool MenuState::HandleInput()
 	return true;
 }
 
-void MenuState::Update(float delta_time)
+void WinState::Update(float delta_time)
 {
-	if (selection_ == 0)
-	{
-		indicator_sprite_.set_position(gef::Vector4(375, 275, 1, 1));
-	}
-	else if (selection_ == 1)
-	{
-		indicator_sprite_.set_position(gef::Vector4(375, 375, 1, 1));
-	}
-	else if (selection_ == 2)
-	{
-		indicator_sprite_.set_position(gef::Vector4(375, 475, 1, 1));
-	}
-
 	for (Boid* boid : fishes_)
 	{
 		Fish* fish = (Fish*)boid;
@@ -233,7 +161,7 @@ void MenuState::Update(float delta_time)
 	}
 }
 
-void MenuState::Render()
+void WinState::Render()
 {
 	gef::Matrix44 proj_matrix2d;
 	proj_matrix2d = platform_->OrthographicFrustum(0.0f, platform_->width(), 0.0f, platform_->height(), -1.0f, 1.0f);
@@ -242,31 +170,24 @@ void MenuState::Render()
 	renderer_3D_->set_projection_matrix(projection_matrix_);
 	renderer_3D_->set_view_matrix(view_matrix_);
 
-
 	sprite_renderer_->Begin(true);
 	sprite_renderer_->DrawSprite(background_sprite_);
-	sprite_renderer_->DrawSprite(indicator_sprite_);
 	sprite_renderer_->End();
 
 	renderer_3D_->Begin(false);
 
-	Fish* blue_fish = (Fish*)fishes_[0];
-	Fish* orange_fish = (Fish*)fishes_[1];
+	Fish* orange_fish = (Fish*)fishes_[0];
 
-	fish_body_blue_mesh_instance_.set_transform(blue_fish->GetBodyTransform());
-	fish_tail_blue_mesh_instance_.set_transform(blue_fish->GetTailTransform());
 	fish_body_orange_mesh_instance_.set_transform(orange_fish->GetBodyTransform());
 	fish_tail_orange_mesh_instance_.set_transform(orange_fish->GetTailTransform());
 
-	renderer_3D_->DrawMesh(fish_body_blue_mesh_instance_);
-	renderer_3D_->DrawMesh(fish_tail_blue_mesh_instance_);
 	renderer_3D_->DrawMesh(fish_body_orange_mesh_instance_);
 	renderer_3D_->DrawMesh(fish_tail_orange_mesh_instance_);
 
 	renderer_3D_->End();
 }
 
-void MenuState::Release()
+void WinState::Release()
 {
 
 }

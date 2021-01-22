@@ -9,7 +9,7 @@ public:
 
 	void Update(float delta_time);
 
-	gef::Matrix44 spawn_transform_;
+	//gef::Matrix44 spawn_transform_;
 
 	gef::Vector4 position_;
 	gef::Vector4 velocity_;

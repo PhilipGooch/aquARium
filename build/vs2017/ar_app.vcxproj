@@ -80,11 +80,12 @@
     <ClCompile Include="..\..\game_state.cpp" />
     <ClCompile Include="..\..\main_vita.cpp" />
     <ClCompile Include="..\..\menu_state.cpp" />
-    <ClCompile Include="..\..\options_state.cpp" />
+    <ClCompile Include="..\..\help_state.cpp" />
     <ClCompile Include="..\..\paintball.cpp" />
     <ClCompile Include="..\..\primitive_builder.cpp" />
     <ClCompile Include="..\..\state.cpp" />
     <ClCompile Include="..\..\state_machine.cpp" />
+    <ClCompile Include="..\..\win_state.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\boid.h" />
@@ -92,11 +93,12 @@
     <ClInclude Include="..\..\game_object.h" />
     <ClInclude Include="..\..\game_state.h" />
     <ClInclude Include="..\..\menu_state.h" />
-    <ClInclude Include="..\..\options_state.h" />
+    <ClInclude Include="..\..\help_state.h" />
     <ClInclude Include="..\..\paintball.h" />
     <ClInclude Include="..\..\primitive_builder.h" />
     <ClInclude Include="..\..\state.h" />
     <ClInclude Include="..\..\state_machine.h" />
+    <ClInclude Include="..\..\win_state.h" />
   </ItemGroup>
   <Import Condition="'$(ConfigurationType)' == 'Makefile' and Exists('$(VCTargetsPath)\Platforms\$(Platform)\SCE.Makefile.$(Platform).targets')" Project="$(VCTargetsPath)\Platforms\$(Platform)\SCE.Makefile.$(Platform).targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

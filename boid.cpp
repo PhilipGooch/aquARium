@@ -9,22 +9,22 @@ Boid::Boid() :
 	max_force_(0.06f),
 	max_speed_(0.1f),
 	min_speed_(0.0f),
-	separation_weight_(1.3f),
+	separation_weight_(1.4f),
 	alignment_weight_(1.0f),
 	cohesion_weight_(1.1),
 	edges_weight_(1.5f),
-	flee_weight_(0.01f),
-	flee_radius_(0.05f),
+	flee_weight_(4.0f),
+	flee_radius_(0.1f),
 	environment_half_width_(0.08f),
 	environment_half_depth_(0.08f),
 	environment_half_height_(0.08f)
 {
 	float x = ((float)(rand() % (int)(environment_half_width_ * 2000) - environment_half_width_ * 1000)) / 1000;
-	float y = ((float)(rand() % (int)(environment_half_width_ * 2000) - environment_half_width_ * 1000)) / 1000;
-	float z = ((float)(rand() % (int)(environment_half_width_ * 2000))) / 1000;
+	float y = ((float)(rand() % (int)(environment_half_height_ * 2000) - environment_half_height_ * 1000)) / 1000;
+	float z = ((float)(rand() % (int)(environment_half_depth_ * 2000))) / 1000;
 	float a = (float)(rand() % 360);
-	float vx = 0.0f;//cosf(a * 3.1415f / 180) * max_speed_;
-	float vy = 0.0f;//sinf(a * 3.1415f / 180) * max_speed_;
+	float vx = 0.0f;
+	float vy = 0.0f;
 	float vz = 0.0f;
 	float ax = 0.0f;
 	float ay = 0.0f;
@@ -157,26 +157,21 @@ gef::Vector4 Boid::Cohesion(std::vector<Boid*> boids)
 
 gef::Vector4 Boid::Flee()
 {
-	gef::Vector4 position_world_space;
-	position_world_space = world_transform_.GetTranslation();
 
-	// identityboi.setranslation worldtransform
-	// set fish(5) parent transform to identityboi
-	// set fish(5) local transform 0
+	gef::Matrix44 offset_parent_transform;
+	offset_parent_transform = offset_transform_ * parent_transform_;
+
+	gef::Matrix44 inverse_offset_parent_transform;
+	inverse_offset_parent_transform.AffineInverse(offset_parent_transform);
+
+	gef::Vector4 camera_fish_space;
+	camera_fish_space = inverse_offset_parent_transform.GetTranslation();
 
 	gef::Vector4 steering = gef::Vector4(0.f, 0.f, 0.f);
 
-	gef::Matrix44 inverse_local_transform;
-	inverse_local_transform.AffineInverse(local_transform_);
+	gef::Vector4 desired = position_ - camera_fish_space;
 
-	gef::Matrix44 inverse_parent_transform;
-	inverse_parent_transform.AffineInverse(parent_transform_);
-
-	gef::Matrix44 desired_transform;
-	desired_transform = world_transform_ * inverse_local_transform * inverse_parent_transform;
-
-	gef::Vector4 desired = desired_transform.GetTranslation();;
-	float distance = position_world_space.Length();
+	float distance = desired.Length();
 	if (distance < flee_radius_)
 	{
 		desired = vSetMagnitude(desired, max_speed_);

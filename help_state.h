@@ -3,8 +3,6 @@
 
 #include <graphics\sprite.h>
 #include <platform/vita/graphics/texture_vita.h>
-#include <graphics/mesh_instance.h>
-#include <vector>
 
 namespace gef
 {
@@ -14,21 +12,21 @@ namespace gef
 	class SpriteRenderer;
 	class Renderer3D;
 	class Font;
+	
 }
 class StateMachine;
-class Boid;
 
-class MenuState : public State
+class HelpState : public State
 {
 public:
-	MenuState(gef::Platform * platform,
+	HelpState(gef::Platform * platform,
 			  gef::InputManager * input_manager,
 			  gef::AudioManager * audio_manager,
 			  gef::Renderer3D * renderer_3D,
 			  gef::SpriteRenderer * sprite_renderer,
 			  gef::Font * font,
 			  StateMachine * state_machine);
-	~MenuState();
+	~HelpState();
 
 protected:
 	void Init() override;
@@ -38,19 +36,6 @@ protected:
 	void Release() override;
 
 	gef::Sprite background_sprite_;
-	gef::Sprite indicator_sprite_;
-
-	int selection_ = 0;
-
 	gef::Texture* background_texture_;
-	gef::Texture* indicator_texture_;
-
-	gef::MeshInstance fish_body_blue_mesh_instance_;
-	gef::MeshInstance fish_tail_blue_mesh_instance_;
-	gef::MeshInstance fish_body_orange_mesh_instance_;
-	gef::MeshInstance fish_tail_orange_mesh_instance_;
-
-	int number_of_fishes_ = 2;
-	std::vector<Boid*> fishes_;
 };
 

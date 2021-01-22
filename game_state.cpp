@@ -8,6 +8,7 @@
 #include <sony_tracking.h>
 #include <system/platform.h>
 #include <input/input_manager.h>
+#include <audio/audio_manager.h>
 #include <input/sony_controller_input_manager.h>
 #include <graphics/renderer_3d.h>
 #include <graphics/sprite_renderer.h>
@@ -18,7 +19,8 @@
 #include <graphics/material.h>
 #include <graphics/mesh.h>
 #include <system/debug_log.h>
-#include <graphics/scene.h>
+#include <stdlib.h>    
+#include <time.h>  
 #include "primitive_builder.h"
 #include "fish.h"
 #include "paintball.h"
@@ -48,13 +50,7 @@ GameState::GameState(gef::Platform * platform,
 	ortho_matrix_.SetIdentity();
 	ortho_matrix_ = platform_->OrthographicFrustum(-1.f, 1.f, -1.f, 1.f, -1.f, 1.f);
 
-	// RESET SONY TRACKING
-	AppData* dat = sampleUpdateBegin();
-	smartTrackingReset();
-	sampleUpdateEnd(dat);
-
 	// CAMERA FEED IMAGE
-	camera_feed_texture_ = new gef::TextureVita;
 	camera_feed_sprite_.set_width(2.f);
 	camera_feed_sprite_.set_height(2.f * camera_image_scale_factor);
 	camera_feed_sprite_.set_position(gef::Vector4(0.f, 0.f, 1.f, 1.f));
@@ -98,15 +94,11 @@ GameState::GameState(gef::Platform * platform,
 
 	fish_body_mesh_instance_.set_mesh(fish_body_blue_mesh_);
 	fish_tail_mesh_instance_.set_mesh(fish_tail_blue_mesh_);
-	for (int i = 0; i < number_of_fishes_; i++)
-	{
-		fishes_.push_back(new Fish());
-	}
 
 	// ENVIRONMENT
-	environment_dimensions_ = fishes_.front()->GetEnvironmentDimensions();
-	environment_mesh_ = primitive_builder_->CreateBoxMesh(environment_dimensions_);
-	environment_mesh_instance_.set_mesh(environment_mesh_);
+	//environment_dimensions_ = fishes_.front()->GetEnvironmentDimensions();
+	//environment_mesh_ = primitive_builder_->CreateBoxMesh(environment_dimensions_);
+	//environment_mesh_instance_.set_mesh(environment_mesh_);
 
 	// PAINTBALL
 	for (int i = 0; i < 6; i++)
@@ -128,15 +120,67 @@ GameState::GameState(gef::Platform * platform,
 		offset_transforms_.back().SetIdentity();
 	}
 
-	// DEBUG CUBE
-	debug_cube_mesh_ = primitive_builder_->CreateBoxMesh(gef::Vector4(0.01f, 0.01f, 0.01f), gef::Vector4(0.0f, 0.0f, 0.0f), &paintball_materials_[0]);
-	debug_cube_mesh_instance_.set_mesh(debug_cube_mesh_);
+	// SOUNDS
+	fire_SFX_ID_ = audio_manager->LoadSample("fire.wav", *platform);
+	fire_SFX_ID_ = audio_manager->LoadSample("hit.wav", *platform);
 }
 
 GameState::~GameState()
 {
 	smartRelease();
 	sampleRelease();
+
+	marker_materials_.clear();
+	marker_meshes_.clear();
+	marker_mesh_instances_.clear();
+
+	delete fish_body_blue_scene_assets_;
+	fish_body_blue_scene_assets_ = nullptr;
+
+	delete fish_tail_blue_scene_assets_;
+	fish_tail_blue_scene_assets_ = nullptr;
+
+	delete fish_body_orange_scene_assets_;
+	fish_body_orange_scene_assets_ = nullptr;
+
+	delete fish_tail_orange_scene_assets_;
+	fish_tail_orange_scene_assets_ = nullptr;
+
+	delete primitive_builder_;
+	primitive_builder_ = nullptr;
+
+	delete environment_mesh_;
+	environment_mesh_ = nullptr;
+
+	paintball_materials_.clear();
+
+	delete paintball_mesh_;
+	paintball_mesh_ = nullptr;
+}
+
+void GameState::Init()
+{
+	anchor_ = 0;
+	reload_time_ = 0;
+	edit_ = false;
+	flocking_variable_ = 0;
+	number_of_blue_fishes_ = number_of_fishes_;
+	number_of_orange_fishes_ = 0;
+
+	// RESET SONY TRACKING
+	AppData* dat = sampleUpdateBegin();
+	smartTrackingReset();
+	sampleUpdateEnd(dat);
+
+	// FISHES
+	for (int i = 0; i < number_of_fishes_; i++)
+	{
+		fishes_.push_back(new Fish());
+	}
+
+	// DEBUG CUBE
+	//debug_cube_mesh_ = primitive_builder_->CreateBoxMesh(gef::Vector4(0.01f, 0.01f, 0.01f), gef::Vector4(0.0f, 0.0f, 0.0f), &paintball_materials_[0]);
+	//debug_cube_mesh_instance_.set_mesh(debug_cube_mesh_);
 }
 
 bool GameState::HandleInput()
@@ -153,39 +197,65 @@ bool GameState::HandleInput()
 
 			if (controller)
 			{
+				if (!(controller->buttons_down() & gef_SONY_CTRL_UP))
+				{
+					up_pressed_ = false;
+				}
+				if (!(controller->buttons_down() & gef_SONY_CTRL_DOWN))
+				{
+					down_pressed_ = false;
+				}
+				if (!(controller->buttons_down() & gef_SONY_CTRL_LEFT))
+				{
+					left_pressed_ = false;
+				}
+				if (!(controller->buttons_down() & gef_SONY_CTRL_RIGHT))
+				{
+					right_pressed_ = false;
+				}
+				if (!(controller->buttons_down() & gef_SONY_CTRL_SELECT))
+				{
+					select_pressed_ = false;
+				}
+				if (!(controller->buttons_down() & gef_SONY_CTRL_CROSS))
+				{
+					cross_pressed_ = false;
+				}
+				
+				// SELECT
+				if (!select_pressed_ && (controller->buttons_down() & gef_SONY_CTRL_SELECT))
+				{
+					select_pressed_ = true;
+					edit_ = !edit_;
+				}
 				// RT
-				if (controller->buttons_down() && gef_SONY_CTRL_R1)
+				if (controller->buttons_down() & gef_SONY_CTRL_R2)
 				{
 					if (reload_time_ > 5)
 					{
 						FirePaintball();
+						audio_manager_->PlaySample(fire_SFX_ID_, false);
 						reload_time_ = 0;
 					}
 				}
 				// Down
-				if (controller->buttons_down() & gef_SONY_CTRL_DOWN)
+				if (!down_pressed_ && (controller->buttons_down() & gef_SONY_CTRL_DOWN))
 				{
-					if (delay_++ > 5)
+					down_pressed_ = true;
+					flocking_variable_++;
+					if (flocking_variable_ > 8)
 					{
-						flocking_variable_++;
-						if (flocking_variable_ > 7)
-						{
-							flocking_variable_ = 0;
-						}
-						delay_ = 0;
+						flocking_variable_ = 0;
 					}
 				}
 				// Up
-				if (controller->buttons_down() & gef_SONY_CTRL_UP)
-				{
-					if (delay_++ > 5)
+				if (!up_pressed_ && (controller->buttons_down() & gef_SONY_CTRL_UP))
+				{					
+					up_pressed_ = true;
+					flocking_variable_--;
+					if (flocking_variable_ < 0)
 					{
-						flocking_variable_--;
-						if (flocking_variable_ < 0)
-						{
-							flocking_variable_ = 7;
-						}
-						delay_ = 0;
+						flocking_variable_ = 8;
 					}
 				}
 				float delta = 0.01f;
@@ -315,6 +385,30 @@ bool GameState::HandleInput()
 						break;
 					}
 				}
+				// CROSS
+				if (!cross_pressed_ && (controller->buttons_down() & gef_SONY_CTRL_CROSS))
+				{
+					if (edit_ && flocking_variable_ == 8)
+					{
+						for (Boid* boid : fishes_)
+						{
+							Fish* fish = (Fish*)boid;
+							fish->perception_ = 0.5f;
+							fish->max_force_ = 0.06f;
+							fish->max_speed_ = 0.1f;
+							fish->min_speed_ = 0.0f;
+							fish->separation_weight_ = 1.4f;
+							fish->alignment_weight_ = 1.0f;
+							fish->cohesion_weight_ = 1.1f;
+							fish->edges_weight_ = 1.5f;
+						}
+					}
+				}
+				// TRIANGLE
+				if (controller->buttons_down() & gef_SONY_CTRL_TRIANGLE)
+				{
+					state_machine_->SetState(StateMachine::MENU);
+				}
 			}
 		}
 	}
@@ -337,7 +431,7 @@ void GameState::Update(float delta_time)
 	{
 		if (AllMarkersDetected())
 		{
-			CalculateOffestTransforms();
+			CalculateOffsetTransforms();
 
 			marker_detected_ = true;
 			callibrating_ = false;
@@ -359,10 +453,6 @@ void GameState::Update(float delta_time)
 			Fish* fish = (Fish*)boid;
 			fish->setParentTransform(marker_transform_);
 		}
-		/*for (Paintball* paintball : paintballs_)
-		{
-			paintball->setParentTransform(marker_transform_);
-		}*/
 	}
 	else
 	{
@@ -376,12 +466,6 @@ void GameState::Update(float delta_time)
 				break;
 			}
 		}
-		
-		/*for (Paintball* paintball : paintballs_)
-		{
-			paintball->setParentTransform(marker_transform_);
-			paintball->setOffsetTransform(offset_transforms_[anchor_]);
-		}*/
 	}
 	sampleGetTransform(anchor_, &marker_transform_);
 	for (Boid* boid : fishes_)
@@ -408,7 +492,7 @@ void GameState::Update(float delta_time)
 		if (paintball->alive_)
 		{
 			paintball->Update(delta_time);
-			if (paintball->position_.z() < -5.0f)
+			if (paintball->position_.z() < -0.5f)
 			{
 				paintball->alive_ = false;
 			}
@@ -426,12 +510,17 @@ void GameState::Update(float delta_time)
 				Fish* fish = (Fish*)boid;
 				if (fish->alive_)
 				{
-					if ((fish->GetWorldTransform().GetTranslation() - paintball->GetWorldTransform().GetTranslation()).Length() < 0.015f)
+					if ((fish->GetWorldTransform().GetTranslation() - paintball->GetWorldTransform().GetTranslation()).Length() < 0.014f)
 					{
+						audio_manager_->PlaySample(hit_SFX_ID_, false);
 						paintball->alive_ = false;
 						fish->alive_ = false;
 						number_of_blue_fishes_--;
 						number_of_orange_fishes_++;
+						if (number_of_orange_fishes_ >= 10)
+						{
+							state_machine_->SetState(StateMachine::WIN);
+						}
 						break;
 					}
 				}
@@ -444,7 +533,7 @@ void GameState::Update(float delta_time)
 	environment_translation.SetTranslation(gef::Vector4(-environment_dimensions_.x(), -environment_dimensions_.y(), environment_dimensions_.z()));
 	environment_mesh_instance_.set_transform(environment_translation * fishes_.front()->GetOffsetTransform() * fishes_.front()->GetParentTransform());
 	
-	debug_cube_mesh_instance_.set_transform(fishes_.front()->GetLocalTransform() * fishes_.front()->GetOffsetTransform() * fishes_.front()->GetParentTransform());
+	//debug_cube_mesh_instance_.set_transform(fishes_.front()->GetLocalTransform() * fishes_.front()->GetOffsetTransform() * fishes_.front()->GetParentTransform());
 
 	sampleUpdateEnd(dat);
 }
@@ -455,12 +544,12 @@ void GameState::Render()
 	renderer_3D_->set_view_matrix(view_matrix_);
 
 	AppData* dat = sampleRenderBegin();
-	ortho_matrix_ = platform_->OrthographicFrustum(-1.f, 1.f, -1.f, 1.f, -1.f, 1.f);		// why do i need to update this every frame?
+	ortho_matrix_ = platform_->OrthographicFrustum(-1.f, 1.f, -1.f, 1.f, -1.f, 1.f);		
 	sprite_renderer_->set_projection_matrix(ortho_matrix_);
 	if (dat->currentImage)
 	{
-		camera_feed_texture_->set_texture(dat->currentImage->tex_yuv);
-		camera_feed_sprite_.set_texture(camera_feed_texture_);
+		camera_feed_texture_.set_texture(dat->currentImage->tex_yuv);
+		camera_feed_sprite_.set_texture(&camera_feed_texture_);
 	}
 	sprite_renderer_->Begin(true);
 	sprite_renderer_->DrawSprite(camera_feed_sprite_);
@@ -485,17 +574,6 @@ void GameState::Render()
 				fish_tail_mesh_instance_.set_mesh(fish_tail_orange_mesh_);
 			}
 
-			/*if (fish->GetWorldTransform().GetTranslation().Length() < 0.05)
-			{
-				fish_body_mesh_instance_.set_mesh(fish_body_orange_mesh_);
-				fish_tail_mesh_instance_.set_mesh(fish_tail_orange_mesh_);
-			}
-			else
-			{
-				fish_body_mesh_instance_.set_mesh(fish_body_blue_mesh_);
-				fish_tail_mesh_instance_.set_mesh(fish_tail_blue_mesh_);
-			}*/
-
 			fish_body_mesh_instance_.set_transform(fish->GetBodyTransform());
 			fish_tail_mesh_instance_.set_transform(fish->GetTailTransform());
 			renderer_3D_->DrawMesh(fish_body_mesh_instance_);
@@ -509,6 +587,7 @@ void GameState::Render()
 		//renderer_3D_->SetFillMode(gef::Renderer3D::FillMode::kWireframe);
 		//renderer_3D_->DrawMesh(environment_mesh_instance_);
 		//renderer_3D_->SetFillMode(gef::Renderer3D::FillMode::kSolid);
+		
 
 		// PAINTBALL
 
@@ -539,19 +618,23 @@ void GameState::Render()
 		sprite_renderer_->Begin(false);
 		font_->RenderText(sprite_renderer_, gef::Vector4(850.0f, 510.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "FPS: %.1f", fps_);
 
-		font_->RenderText(sprite_renderer_, gef::Vector4(800.0f, 110.0f, -0.9f), 1.0f, 0xffff0000, gef::TJ_CENTRE, "%i", number_of_blue_fishes_);
-		font_->RenderText(sprite_renderer_, gef::Vector4(830.0f, 110.0f, -0.9f), 1.0f, 0xff000000, gef::TJ_CENTRE, "/");
-		font_->RenderText(sprite_renderer_, gef::Vector4(860.0f, 110.0f, -0.9f), 1.0f, 0xff277fff, gef::TJ_CENTRE, "%i", number_of_orange_fishes_);
+		font_->RenderText(sprite_renderer_, gef::Vector4(760.0f, 10.0f, -0.9f), 3.0f, 0xffff0000, gef::TJ_CENTRE, "%i", number_of_blue_fishes_);
+		font_->RenderText(sprite_renderer_, gef::Vector4(820.0f, 10.0f, -0.9f), 3.0f, 0xff000000, gef::TJ_CENTRE, " /");
+		font_->RenderText(sprite_renderer_, gef::Vector4(900.0f, 10.0f, -0.9f), 3.0f, 0xff277fff, gef::TJ_CENTRE, "%i", number_of_orange_fishes_);
 
-		//font_->RenderText(sprite_renderer_, gef::Vector4(20.0f, 20.0f + variable_ * 40, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, ">");
-		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 20.0f, -0.9f), 1.0f,  0xffffffff, gef::TJ_LEFT, "Perception: %.3f", fishes_.front()->perception_);
-		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 60.0f, -0.9f), 1.0f,  0xffffffff, gef::TJ_LEFT, "Max Force:  %.3f", fishes_.front()->max_force_);
-		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 100.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Max Speed:  %.3f", fishes_.front()->max_speed_);
-		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 140.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Min Speed:  %.3f", fishes_.front()->min_speed_);
-		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 180.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Separation: %.3f", fishes_.front()->separation_weight_);
-		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 220.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Alignment:  %.3f", fishes_.front()->alignment_weight_);
-		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 260.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Cohesion:   %.3f", fishes_.front()->cohesion_weight_);
-		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 300.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Edges:      %.3f", fishes_.front()->edges_weight_);
+		if (edit_)
+		{
+			font_->RenderText(sprite_renderer_, gef::Vector4(20.0f, 20.0f + flocking_variable_ * 40, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, ">");
+			font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 20.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Perception: %.3f", fishes_.front()->perception_);
+			font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 60.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Max Force:  %.3f", fishes_.front()->max_force_);
+			font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 100.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Max Speed:  %.3f", fishes_.front()->max_speed_);
+			font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 140.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Min Speed:  %.3f", fishes_.front()->min_speed_);
+			font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 180.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Separation: %.3f", fishes_.front()->separation_weight_);
+			font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 220.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Alignment:  %.3f", fishes_.front()->alignment_weight_);
+			font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 260.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Cohesion:   %.3f", fishes_.front()->cohesion_weight_);
+			font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 300.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Edges:      %.3f", fishes_.front()->edges_weight_);
+			font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 340.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "Defaults", fishes_.front()->edges_weight_);
+		}
 
 		//font_->RenderText(sprite_renderer_, gef::Vector4(50.0f, 300.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "%f %f %f", fishes_.front()->GetWorldTransform().GetTranslation().x(), fishes_.front()->GetWorldTransform().GetTranslation().y(), fishes_.front()->GetWorldTransform().GetTranslation().z());
 
@@ -562,6 +645,12 @@ void GameState::Render()
 		}
 		sprite_renderer_->End();
 	}
+}
+
+void GameState::Release()
+{
+	fishes_.clear();
+	paintballs_.clear();
 }
 
 bool GameState::AllMarkersDetected()
@@ -578,7 +667,7 @@ bool GameState::AllMarkersDetected()
 	return all_markers_detected;
 }
 
-void GameState::CalculateOffestTransforms()
+void GameState::CalculateOffsetTransforms()
 {
 	gef::Matrix44 main_marker;
 	sampleGetTransform(0, &main_marker);
@@ -618,34 +707,3 @@ gef::Material* GameState::LoadMaterial(char* file_name)
 	return material;
 }
 
-gef::Scene* GameState::LoadSceneAssets(gef::Platform& platform, const char* filename)
-{
-	gef::Scene* scene = new gef::Scene();
-
-	if (scene->ReadSceneFromFile(platform, filename))
-	{
-		// if scene file loads successful
-		// create material and mesh resources from the scene data
-		scene->CreateMaterials(platform);
-		scene->CreateMeshes(platform);
-	}
-	else
-	{
-		delete scene;
-		scene = NULL;
-	}
-
-	return scene;
-}
-
-gef::Mesh* GameState::GetMeshFromSceneAssets(gef::Scene* scene)
-{
-	gef::Mesh* mesh = NULL;
-
-	// if the scene data contains at least one mesh
-	// return the first mesh
-	if (scene && scene->meshes.size() > 0)
-		mesh = scene->meshes.front();
-
-	return mesh;
-}
